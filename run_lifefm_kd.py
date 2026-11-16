@@ -5,7 +5,7 @@ NS-KD Experiment: Null-Space Suppression KD vs Subspace MSE
 
 Compares:
   - subspace_mse  (naive baseline)
-  - ns_kd (λ)     (+ null-space suppression penalty)
+  - lifefm_kd (λ)     (+ null-space suppression penalty)
 
 For k ∈ {25, 50} (or via --k-values), 3 seeds, on PulsePPG and NormWear.
 
@@ -19,10 +19,10 @@ training signal from the KD objective alone.
 
 Usage:
     # PulsePPG, GPU 0
-    CUDA_VISIBLE_DEVICES=0 python -u run_ns_kd.py --teacher pulseppg 2>&1 | tee logs/ns_kd_pulseppg.log
+    CUDA_VISIBLE_DEVICES=0 python -u run_lifefm_kd.py --teacher pulseppg 2>&1 | tee logs/ns_kd_pulseppg.log
 
     # NormWear, GPU 1
-    CUDA_VISIBLE_DEVICES=1 python -u run_ns_kd.py --teacher normwear 2>&1 | tee logs/ns_kd_normwear.log
+    CUDA_VISIBLE_DEVICES=1 python -u run_lifefm_kd.py --teacher normwear 2>&1 | tee logs/ns_kd_normwear.log
 """
 
 from __future__ import annotations
@@ -119,14 +119,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--adaptive-tau", type=float, default=0.90,
                    help="Cumulative explained-variance threshold for adaptive k (default 0.90, "
                         "matches historical k=40 experiments on D=512 mixed pool).")
-    p.add_argument("--lambdas", type=float, nargs="+", default=[0.1, 0.5, 1.0],
-                   help="NS penalty weights to sweep")
-    p.add_argument("--methods", nargs="+",
-                   default=["subspace_mse", "ns_kd"],
-                   choices=["subspace_mse", "ns_kd", "rkd", "pse_kd", "full_mse", "ns_rkd",
-                            "lower_bound", "pkt", "sp", "crd", "seed", "disco", "norm",
-                            "ns_kd_isig", "ns_kd_aux_crd", "aligned_subspace_crd"],
-                   help="Which method groups to run")
+    p.add_argument("--lambdas", "--lambda-sup", dest="lambdas", type=float, nargs="+", default=[0.1],
+                   help="Non-core suppression weight lambda_sup (paper: 0.1). Pass multiple values to sweep.")
+    p.add_argument("--methods", nargs="+", default=["lifefm_kd"],
+                   choices=["lifefm_kd"],
+                   help="Stage-I objective. Only LifeFM's core-alignment + non-core-suppression KD is supported.")
     p.add_argument("--alphas", type=float, nargs="+", default=[0.5, 1.0],
                    help="ns_kd_isig: per-direction weight exponent (w_i = (sigma_i/sigma_max)**-alpha, mean-normalised)")
     p.add_argument("--isig-lam", type=float, default=0.1,
@@ -286,7 +283,7 @@ def train_ns_kd_isig(student, ds, V_k_t, w_k_t, epochs, dev, lr=KD_LR, lam=0.1):
     return student
 
 
-def train_ns_kd(student, ds, V_k_t, epochs, dev, lr=KD_LR, lam=0.5):
+def train_lifefm_kd(student, ds, V_k_t, epochs, dev, lr=KD_LR, lam=0.5):
     """NS-KD: subspace MSE + null-space suppression.
 
     Loss = ||V_k (z_s - z_t)||^2  +  λ * ||(I - V_k^T V_k) z_s||^2
@@ -1623,14 +1620,14 @@ def main():
 
     # ── Build method grid ──
     # Each entry: (label, lam_or_None, method_type, target_k_or_None)
-    #   method_type: 'subspace_mse' | 'ns_kd' | 'rkd' | 'pse_kd'
+    #   method_type: 'subspace_mse' | 'lifefm_kd' | 'rkd' | 'pse_kd'
     #   target_k: for pse_kd = stages[-1]; for others = None (run at every k)
     methods = []
     if "subspace_mse" in args.methods:
         methods.append(("subspace_mse", None, "subspace_mse", None))
-    if "ns_kd" in args.methods:
+    if "lifefm_kd" in args.methods:
         for lam in args.lambdas:
-            methods.append((f"ns_kd_lam{lam}", lam, "ns_kd", None))
+            methods.append((f"ns_kd_lam{lam}", lam, "lifefm_kd", None))
     if "ns_kd_isig" in args.methods:
         for alpha in args.alphas:
             # lam field is overloaded to carry alpha; dispatcher reads args.isig_lam for ns penalty
@@ -1725,8 +1722,8 @@ def main():
 
                 if mtype == "subspace_mse":
                     stu = train_subspace_mse(stu, ds_train, V_k_t, args.epochs, dev)
-                elif mtype == "ns_kd":
-                    stu = train_ns_kd(stu, ds_train, V_k_t, args.epochs, dev, lam=lam)
+                elif mtype == "lifefm_kd":
+                    stu = train_lifefm_kd(stu, ds_train, V_k_t, args.epochs, dev, lam=lam)
                 elif mtype == "ns_kd_isig":
                     # lam field carries alpha here
                     alpha = float(lam)

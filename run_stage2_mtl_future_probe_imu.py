@@ -54,12 +54,12 @@ from run_stage2_multitask_ppg import (
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT_ROOT = ROOT / "results/stage2_mtl_future_probe_imu_opportunity_to_mhealth_hr"
 
-ALL_METHODS = ("e0_probe", "teacher_probe", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "care_v1")
+ALL_METHODS = ("e0_probe", "teacher_probe", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "lifefm_adapt")
 METHOD_TO_STAGE2 = {
     "gradnorm_mtl": "gradnorm_joint",
     "pcgrad_mtl": "pcgrad_joint",
     "fairgrad_mtl": "fairgrad_joint",
-    "care_v1": "care_v1",
+    "lifefm_adapt": "lifefm_adapt",
 }
 NON_STAGE2_METHODS = {"e0_probe", "teacher_probe"}
 
@@ -77,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--student_encoder_ckpt", default="", help="Checkpoint file or directory override.")
     ap.add_argument("--student", default="imu2m")
-    ap.add_argument("--stage1_method", default="ns_kd")
+    ap.add_argument("--stage1_method", default="lifefm_kd")
     ap.add_argument("--cases", nargs="+", default=["all"])
     ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS))
     ap.add_argument("--batch_size", type=int, default=8)
@@ -92,7 +92,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--weight_decay", type=float, default=1e-4)
     ap.add_argument("--dropout", type=float, default=0.2)
     ap.add_argument("--fairgrad_alpha", type=float, default=1.0)
-    ap.add_argument("--care_auto_reuse_lambda", type=float, default=0.05)
+    ap.add_argument("--lambda-core", "--care_auto_reuse_lambda", dest="care_auto_reuse_lambda", type=float, default=0.05)
     ap.add_argument("--care_auto_anchor_source", type=str, default="source_union", choices=["source_union"])
     ap.add_argument("--care_auto_reuse_k", type=int, default=0)
     ap.add_argument("--care_auto_anchor_max_batches", type=int, default=8)

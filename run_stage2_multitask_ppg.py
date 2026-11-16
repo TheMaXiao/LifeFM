@@ -73,7 +73,7 @@ from torch.utils.data import DataLoader, Dataset, TensorDataset
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from run_ns_kd import PP_STUDENT_CONFIGS  # noqa: E402
+from run_lifefm_kd import PP_STUDENT_CONFIGS  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parent
@@ -1711,7 +1711,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", choices=sorted(DATASET_SPECS), default="ppgbp")
     ap.add_argument("--students", nargs="+", default=["BF20_NB8", "BF48_NB8"])
-    ap.add_argument("--kd-method", default="ns_kd", choices=["ns_kd", "subspace_mse"])
+    ap.add_argument("--kd-method", default="lifefm_kd", choices=["lifefm_kd", "subspace_mse"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0])
     ap.add_argument(
         "--methods",

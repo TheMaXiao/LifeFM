@@ -151,7 +151,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", choices=sorted(DATASET_SPECS), default="dalia")
     ap.add_argument("--students", nargs="+", default=["BF20_NB8"])
-    ap.add_argument("--kd-method", default="ns_kd", choices=["ns_kd", "subspace_mse"])
+    ap.add_argument("--kd-method", default="lifefm_kd", choices=["lifefm_kd", "subspace_mse"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument(
         "--methods",

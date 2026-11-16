@@ -86,7 +86,7 @@ DEFAULT_DATA_DIRS = {
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--student", default="BF32_NB8")
-    ap.add_argument("--stage1-method", default="ns_kd")
+    ap.add_argument("--stage1-method", default="lifefm_kd")
     ap.add_argument("--seeds", nargs="+", type=int, default=[0])
     ap.add_argument("--source-tasks", nargs="+", default=list(DEFAULT_SOURCE_TASKS))
     ap.add_argument("--target-tasks", nargs="+", default=list(DEFAULT_TARGET_TASKS))

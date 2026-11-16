@@ -89,7 +89,7 @@ ALLOWED_DATASET_PAIRS = {
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--student", default="BF10_NB7")
-    ap.add_argument("--stage1-method", default="ns_kd", choices=["ns_kd", "subspace_mse", "full_mse", "lower_bound"])
+    ap.add_argument("--stage1-method", default="lifefm_kd", choices=["lifefm_kd", "subspace_mse", "full_mse", "lower_bound"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0])
     ap.add_argument("--source-tasks", nargs="+", default=list(DEFAULT_SOURCE_TASKS))
     ap.add_argument("--target-tasks", nargs="+", default=list(DEFAULT_TARGET_TASKS))

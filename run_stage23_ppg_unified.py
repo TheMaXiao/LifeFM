@@ -68,9 +68,9 @@ from run_stage2_student_subspace import assign_flat_grad, flatten_grads, pcgrad_
 
 
 DEFAULT_OUT_ROOT = ROOT / "kd_sweep_results/stage23_ppg_unified"
-STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "care_v1", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "care_direct", "care_direct_v2", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_tune")
-STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "care_direct", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_ft", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
-CARE_AUTO_STAGE2_METHODS = {"care_v1", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm"}
+STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "care_direct", "care_direct_v2", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_tune")
+STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "care_direct", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_ft", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
+CARE_AUTO_STAGE2_METHODS = {"lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm"}
 CARE_STAGE2_METHODS = {"care_direct", "care_direct_v2", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b"}
 CARE_STAGE3_POLICIES = {"care_direct", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "anchor_only", "cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca"}
 CARE_V5_STAGE2_METHODS = {"care_v5a", "care_v5b"}
@@ -78,7 +78,7 @@ CARE_V5_STAGE3_POLICIES = {"care_v5a", "care_v5b"}
 ALL_CARE_STAGE2_METHODS = CARE_AUTO_STAGE2_METHODS | CARE_STAGE2_METHODS
 SCOPE_MATCHED_STAGE2_METHODS = {"scope_matched_naive"}
 SCOPE_MATCHED_STAGE3_POLICIES = {"scope_matched_naive"}
-DISTILL_STAGE3_POLICIES = CARE_STAGE3_POLICIES | {"lwf_ft", "lwp", "lwf_core", "lwp_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task"}
+DISTILL_STAGE3_POLICIES = CARE_STAGE3_POLICIES | {"lwf_ft", "lwp", "lwf_core", "lifefm_evolve", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task"}
 
 # PPG-DaLiA activity IDs from the official readme:
 # 0 transient, 1 sitting, 2 stairs, 3 table soccer, 4 cycling,
@@ -559,7 +559,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--packs", nargs="+", default=["ppgbp_clinical", "bidmc_resp"], choices=sorted(PACKS))
     ap.add_argument("--students", nargs="+", default=["BF20_NB8"])
-    ap.add_argument("--kd-method", default="ns_kd", choices=["ns_kd", "subspace_mse"])
+    ap.add_argument("--kd-method", default="lifefm_kd", choices=["lifefm_kd", "subspace_mse"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--stage2-methods", nargs="+", default=["frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint"], choices=STAGE2_METHODS)
     ap.add_argument("--stage3-policy", default="naive_ft", choices=STAGE3_POLICIES)
@@ -583,13 +583,13 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--stage2-cache-dir", type=Path, default=None)
     ap.add_argument("--oracle-cache-dir", type=Path, default=None)
     ap.add_argument("--stage1-ckpt-seed", type=int, default=0)
-    ap.add_argument("--care-stage2-scope", choices=["none", "full", "top1", "top2"], default="top2")
-    ap.add_argument("--care-stage3-scope", choices=["none", "full", "top1", "top2"], default="top1")
+    ap.add_argument("--stage2-scope", "--care-stage2-scope", dest="care_stage2_scope", choices=["none", "full", "top1", "top2"], default="top2")
+    ap.add_argument("--stage3-scope", "--care-stage3-scope", dest="care_stage3_scope", choices=["none", "full", "top1", "top2"], default="top1")
     ap.add_argument("--care-stage2-anchor-lambda", type=float, default=0.1)
     ap.add_argument("--care-floor-lambda", type=float, default=0.25)
     ap.add_argument("--care-loss-ema", type=float, default=0.95)
     ap.add_argument("--care-stage3-anchor-lambda", type=float, default=0.1)
-    ap.add_argument("--core-lambda", type=float, default=0.1)
+    ap.add_argument("--lambda-evo-core", "--core-lambda", dest="core_lambda", type=float, default=0.1)
     ap.add_argument("--core-energy", type=float, default=0.95)
     ap.add_argument("--core-mode", type=str, default="refresh")   # none|refresh|fixed|fuse_grow|fuse_budget
     ap.add_argument("--core-budget", type=int, default=0)
@@ -1263,7 +1263,7 @@ def _stage3_encoder_scope(stage3_policy: str, care_stage3_scope: str, care_v5_st
         return care_stage3_scope
     if stage3_policy == "lora_ft":
         return "lora"
-    if stage3_policy in {"lwp", "lwp_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "lwp_task"}:
+    if stage3_policy in {"lwp", "lifefm_evolve", "core_dwdp", "core_affinity", "core_affinity_hybrid", "lwp_task"}:
         return care_stage3_scope
     return "full"
 
@@ -3410,7 +3410,7 @@ def fit_new_task_extension(
     cpca_basis_info: Dict[str, Any] = {}
     sema_wrapper = None
     sema_rd_lambda = 0.1
-    if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "sgp_core"} and stage2_anchor_model is not None:
+    if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "sgp_core"} and stage2_anchor_model is not None:
         _old_td = list(old_task_data) if old_task_data else []
         _old_train = make_task_loaders_for_device(_old_td, batch_size=64, device=device)[0]
         if stage3_policy in {"core_task", "lwp_task"}:
@@ -3442,7 +3442,7 @@ def fit_new_task_extension(
             )
         cpca_basis = cpca_basis_info["basis"]
         cpca_k = int(cpca_basis_info["reuse_k"])
-        if stage3_policy == "lwp_core":
+        if stage3_policy == "lifefm_evolve":
             _prev = getattr(model, "_carried_core", None)
             if _prev is not None:
                 _prev = _prev.to(device=device, dtype=torch.float32)
@@ -3581,7 +3581,7 @@ def fit_new_task_extension(
                     else:
                         z_anchor, out_anchor = stage2_anchor_model(xb, task_name=new_task.spec.name)
                 # Anchor loss must be OUTSIDE no_grad so the encoder receives its gradient.
-                if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lwp_core", "core_task", "lwp_task"}:
+                if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lifefm_evolve", "core_task", "lwp_task"}:
                     anchor_loss = F.mse_loss(z @ cpca_basis, z_anchor @ cpca_basis)
                 elif stage3_policy in CARE_STAGE3_POLICIES:
                     anchor_loss = F.mse_loss(z, z_anchor)
@@ -3642,7 +3642,7 @@ def fit_new_task_extension(
                     loss = new_loss + lwf_old_distill_lambda * distill_loss
                 elif stage3_policy == "lwf_core":
                     loss = new_loss + lwf_old_distill_lambda * distill_loss + core_lambda * anchor_loss
-                elif stage3_policy == "lwp_core":
+                elif stage3_policy == "lifefm_evolve":
                     dwdp_loss = _dwdp_loss(z_anchor, z, yb, new_task.spec.kind)
                     loss = new_loss + lwp_lam_old * distill_loss + lwp_lam_dwdp * dwdp_loss + core_lambda * anchor_loss
                     last_anchor = float(dwdp_loss.detach().item())

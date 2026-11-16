@@ -50,13 +50,13 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT_ROOT = ROOT / "kd_sweep_results/stage2_mtl_future_probe"
 DEFAULT_SAME10_BASELINE_CSV = ROOT / "kd_sweep_results/stage2_mtl_future_probe_aggregated_final" / "overall_summary.csv"
 DEFAULT_SAME10_TEACHER_CSV = ROOT / "kd_sweep_results/stage2_mtl_future_probe_aggregated_teacher_final" / "overall_summary.csv"
-ALL_METHODS = ("pulseppg_teacher_e0", "e0_probe", "joint_mtl", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "care_v1", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "l2sp_mtl")
+ALL_METHODS = ("pulseppg_teacher_e0", "e0_probe", "joint_mtl", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "l2sp_mtl")
 METHOD_TO_STAGE2 = {
     "joint_mtl": "joint_finetune",
     "gradnorm_mtl": "gradnorm_joint",
     "pcgrad_mtl": "pcgrad_joint",
     "fairgrad_mtl": "fairgrad_joint",
-    "care_v1": "care_v1",
+    "lifefm_adapt": "lifefm_adapt",
     "care_v2": "care_v2",
     "care_v3": "care_v3",
     "care_v2_normmse": "care_v2_normmse",
@@ -197,7 +197,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--encoder_ckpt", default="", help="Checkpoint file, checkpoint directory, or template path with {seed}/{method} placeholders.")
     ap.add_argument("--student_encoder_ckpt", dest="encoder_ckpt", help="Alias for --encoder_ckpt.")
     ap.add_argument("--student", default="BF32_NB8")
-    ap.add_argument("--stage1_method", default="ns_kd")
+    ap.add_argument("--stage1_method", default="lifefm_kd")
     ap.add_argument("--cases", nargs="+", default=["all"])
     ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS))
     ap.add_argument("--batch_size", type=int, default=8)
@@ -216,7 +216,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--care_anchor_source", type=str, default="source_union", choices=["source_union", "stage1_public_pool", "mixed_source_public"])
     ap.add_argument("--care_reuse_feature_space", type=str, default="encoder_pooled", choices=["encoder_pooled"])
     ap.add_argument("--care_reuse_k", type=int, default=0, help="0 => auto=min(32, feature_dim)")
-    ap.add_argument("--care_reuse_lambda", type=float, default=0.05)
+    ap.add_argument("--lambda-core", "--care_reuse_lambda", dest="care_reuse_lambda", type=float, default=0.05)
     ap.add_argument("--care_train_scope", type=str, default="full_encoder", choices=["full_encoder", "upper_blocks_only", "late_blocks_plus_heads", "heads_only", "top1", "top2", "none"])
     ap.add_argument("--care_reuse_loss_type", type=str, default="mse", choices=["mse", "full_mse", "cosine", "huber", "norm_mse", "statnorm_mse"])
     ap.add_argument("--care_stat_lambda", type=float, default=0.01)

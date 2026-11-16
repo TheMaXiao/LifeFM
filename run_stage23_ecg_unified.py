@@ -107,9 +107,9 @@ DEFAULT_CKPT_DIRS = {
     "BF10_NB7": ROOT / "kd_sweep_results/ecg_preliminary/exp_ecgfounder_BF10_NB7_10K_13tasks/checkpoints",
     "BF12_NB7": ROOT / "kd_sweep_results/ecg_preliminary/exp_ecgfounder_BF12_NB7_10K_13tasks/checkpoints",
 }
-STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "care_v1")
-CARE_AUTO_STAGE2_METHODS: frozenset = frozenset({"care_v1"})
-STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
+STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "lifefm_adapt")
+CARE_AUTO_STAGE2_METHODS: frozenset = frozenset({"lifefm_adapt"})
+STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
 
 
 PACKS: Dict[str, Dict[str, Any]] = {
@@ -317,7 +317,7 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--packs", nargs="+", default=["ptbxl_core"], choices=sorted(PACKS))
     ap.add_argument("--students", nargs="+", default=["BF10_NB7"])
-    ap.add_argument("--stage1-method", default="ns_kd", choices=["ns_kd", "subspace_mse", "full_mse", "lower_bound"])
+    ap.add_argument("--stage1-method", default="lifefm_kd", choices=["lifefm_kd", "subspace_mse", "full_mse", "lower_bound"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[0])
     ap.add_argument("--stage2-methods", nargs="+", default=list(STAGE2_METHODS), choices=STAGE2_METHODS)
     ap.add_argument("--stage3-policy", default="naive_ft", choices=STAGE3_POLICIES)
@@ -332,11 +332,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--stage3-patience", type=int, default=5)
     ap.add_argument("--stage3-head-lr", type=float, default=1e-3)
     ap.add_argument("--stage3-encoder-lr-mult", type=float, default=0.1)
-    ap.add_argument("--care-stage2-scope", choices=["none", "full", "top1", "top2"], default="top2")
-    ap.add_argument("--care-stage3-scope", choices=["none", "full", "top1", "top2"], default="top1")
+    ap.add_argument("--stage2-scope", "--care-stage2-scope", dest="care_stage2_scope", choices=["none", "full", "top1", "top2"], default="top2")
+    ap.add_argument("--stage3-scope", "--care-stage3-scope", dest="care_stage3_scope", choices=["none", "full", "top1", "top2"], default="top1")
     ap.add_argument("--lwf-old-distill-lambda", type=float, default=0.25)
     ap.add_argument("--care-stage3-anchor-lambda", type=float, default=0.1)
-    ap.add_argument("--core-lambda", type=float, default=0.1)
+    ap.add_argument("--lambda-evo-core", "--core-lambda", dest="core_lambda", type=float, default=0.1)
     ap.add_argument("--core-mode", type=str, default="refresh")
     ap.add_argument("--core-budget", type=int, default=0)
     ap.add_argument("--ewc-lambda", type=float, default=1000.0)
@@ -906,7 +906,7 @@ def set_stage3_trainable(model: MultiTaskModel, new_task_name: str, stage3_polic
         _set_encoder_trainable_names(model, _care_v3_candidate_param_names(model, care_stage3_scope))
     else:
         for p in model.encoder.parameters():
-            p.requires_grad = stage3_policy in {"naive_ft", "lwf_ft", "anchor_only", "lpr", "cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp", "sgp_core"}
+            p.requires_grad = stage3_policy in {"naive_ft", "lwf_ft", "anchor_only", "lpr", "cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp", "sgp_core"}
     for name, head in model.heads.items():
         req = name == new_task_name
         for p in head.parameters():
@@ -1010,7 +1010,7 @@ def fit_new_task_extension(
 ) -> Tuple[MultiTaskModel, Dict[str, Dict[str, float]], Dict[str, Any]]:
     model = model.to(device)
     stage2_anchor_model: MultiTaskModel | None = None
-    if stage3_policy in {"lwf_ft", "anchor_only", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp_core"}:
+    if stage3_policy in {"lwf_ft", "anchor_only", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp_core"}:
         stage2_anchor_model = copy.deepcopy(model).to(device)
         stage2_anchor_model.eval()
         stage2_anchor_model.requires_grad_(False)
@@ -1048,7 +1048,7 @@ def fit_new_task_extension(
 
     cpca_basis = None
     cpca_k = 0
-    if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lwp_core", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp_core"} and stage2_anchor_model is not None:
+    if stage3_policy in {"cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "ewc", "sgp_core"} and stage2_anchor_model is not None:
         _old_td = list(old_task_data) if old_task_data else list(old_tasks)
         _old_train = make_task_loaders_ecg(_old_td, batch_size)[0]
         if stage3_policy in {"core_task", "lwp_task"}:
@@ -1072,7 +1072,7 @@ def fit_new_task_extension(
             _bi = _cpca_ts_basis(model, stage2_anchor_model.encoder, [td.runtime for td in _old_td], _old_train, device, _k)
         cpca_basis = _bi["basis"]
         cpca_k = int(_bi["reuse_k"])
-        if stage3_policy == "lwp_core":
+        if stage3_policy == "lifefm_evolve":
             _prev = getattr(model, "_carried_core", None)
             if _prev is not None:
                 _prev = _prev.to(device=device, dtype=torch.float32)
@@ -1271,7 +1271,7 @@ def fit_new_task_extension(
                 loss = new_loss + lwp_lam_old * distill_loss + lwp_lam_dwdp * dwdp_loss
                 last_distill = float(distill_loss.detach().item())
                 last_anchor = float(dwdp_loss.detach().item())
-            elif stage3_policy == "lwp_core":
+            elif stage3_policy == "lifefm_evolve":
                 assert stage2_anchor_model is not None and cpca_basis is not None
                 with torch.no_grad():
                     z_anchor, out_anchor = stage2_anchor_model(xb, task_name=new_task.spec.name)

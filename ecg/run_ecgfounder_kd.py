@@ -219,7 +219,7 @@ def kd_loss(z_s, z_t, method, V_k=None, lam=0.1, **hp):
         return F.mse_loss(z_s, z_t)
     if method == "subspace_mse":
         return F.mse_loss(z_s @ V_k.T, z_t @ V_k.T)
-    if method == "ns_kd":
+    if method == "lifefm_kd":
         sub = F.mse_loss(z_s @ V_k.T, z_t @ V_k.T)
         ns  = (z_s - (z_s @ V_k.T) @ V_k).pow(2).mean()
         return sub + lam * ns
@@ -453,7 +453,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--student", default="BF8_NB7", choices=list(STUDENT_CFGS))
     ap.add_argument("--methods", nargs="+",
-                    default=["full_mse", "subspace_mse", "ns_kd"])
+                    default=["full_mse", "subspace_mse", "lifefm_kd"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--lam", type=float, default=0.1)
     ap.add_argument("--pool-n", type=int, default=5000)
