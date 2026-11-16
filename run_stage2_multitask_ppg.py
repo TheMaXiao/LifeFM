@@ -310,11 +310,9 @@ def load_stage1_full(
     ckpt_path = ckpt_dir / f"{method}_seed{seed}.pt"
     if not ckpt_path.exists():
         raise FileNotFoundError(
-            f"Missing checkpoint: {ckpt_path}\n"
-            f"BF20 checkpoints already exist in bf20_ckpts. For BF48, first materialize them with:\n"
-            f"  /home/xiaoma/anaconda3/envs/pulseppg/bin/python train_kd_checkpoints.py "
-            f"--student BF48_NB8 --methods {method} --seeds {seed} --k 40 "
-            f"--out-dir kd_sweep_results/pulseppg_preliminary/bf48_ckpts"
+            f"Missing Stage-I checkpoint: {ckpt_path}\n"
+            f"Run `bash scripts/setup_checkpoints.sh` to install the released checkpoints, "
+            f"or pass --student_encoder_ckpt with a checkpoint produced by run_lifefm_kd.py."
         )
 
     obj = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
