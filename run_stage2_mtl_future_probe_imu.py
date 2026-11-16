@@ -54,14 +54,14 @@ from run_stage2_multitask_ppg import (
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT_ROOT = ROOT / "results/stage2_mtl_future_probe_imu_opportunity_to_mhealth_hr"
 
-ALL_METHODS = ("e0_probe", "teacher_probe", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "lifefm_adapt")
+ALL_METHODS = ("lifefm_adapt",)
 METHOD_TO_STAGE2 = {
     "gradnorm_mtl": "gradnorm_joint",
     "pcgrad_mtl": "pcgrad_joint",
     "fairgrad_mtl": "fairgrad_joint",
     "lifefm_adapt": "lifefm_adapt",
 }
-NON_STAGE2_METHODS = {"e0_probe", "teacher_probe"}
+NON_STAGE2_METHODS = frozenset()
 
 CASE_DEFS: Dict[str, Dict[str, Any]] = {
     "imu_opportunity_to_mhealth_hr": {
@@ -79,7 +79,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--student", default="imu2m")
     ap.add_argument("--stage1_method", default="lifefm_kd")
     ap.add_argument("--cases", nargs="+", default=["all"])
-    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS))
+    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS), choices=list(ALL_METHODS))
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--stage2_epochs", type=int, default=80)
     ap.add_argument("--stage2_patience", type=int, default=10)

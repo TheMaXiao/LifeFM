@@ -107,9 +107,9 @@ DEFAULT_CKPT_DIRS = {
     "BF10_NB7": ROOT / "kd_sweep_results/ecg_preliminary/exp_ecgfounder_BF10_NB7_10K_13tasks/checkpoints",
     "BF12_NB7": ROOT / "kd_sweep_results/ecg_preliminary/exp_ecgfounder_BF12_NB7_10K_13tasks/checkpoints",
 }
-STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "lifefm_adapt")
+STAGE2_METHODS = ("lifefm_adapt",)
 CARE_AUTO_STAGE2_METHODS: frozenset = frozenset({"lifefm_adapt"})
-STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
+STAGE3_POLICIES = ("lifefm_evolve",)
 
 
 PACKS: Dict[str, Dict[str, Any]] = {

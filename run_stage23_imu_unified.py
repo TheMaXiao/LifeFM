@@ -62,8 +62,8 @@ DEFAULT_CKPT_DIRS = {
     "imu2m": ROOT / "kd_sweep_results/imu_preliminary/exp_normwear_imu_stage1_pilot",
     "imu3m": ROOT / "kd_sweep_results/imu_preliminary/exp_normwear_imu_stage1_imu3m",
 }
-STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "scope_matched_naive", "lifefm_adapt")
-STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
+STAGE2_METHODS = ("lifefm_adapt",)
+STAGE3_POLICIES = ("lifefm_evolve",)
 
 WISDM_GROUP6_ORDER = [
     "locomotion",

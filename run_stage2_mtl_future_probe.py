@@ -50,7 +50,7 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT_ROOT = ROOT / "kd_sweep_results/stage2_mtl_future_probe"
 DEFAULT_SAME10_BASELINE_CSV = ROOT / "kd_sweep_results/stage2_mtl_future_probe_aggregated_final" / "overall_summary.csv"
 DEFAULT_SAME10_TEACHER_CSV = ROOT / "kd_sweep_results/stage2_mtl_future_probe_aggregated_teacher_final" / "overall_summary.csv"
-ALL_METHODS = ("pulseppg_teacher_e0", "e0_probe", "joint_mtl", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "l2sp_mtl")
+ALL_METHODS = ("lifefm_adapt",)
 METHOD_TO_STAGE2 = {
     "joint_mtl": "joint_finetune",
     "gradnorm_mtl": "gradnorm_joint",
@@ -65,7 +65,7 @@ METHOD_TO_STAGE2 = {
     "care_v2_tasknorm": "care_v2_tasknorm",
     "l2sp_mtl": "l2sp",
 }
-NON_STAGE2_METHODS = {"pulseppg_teacher_e0", "e0_probe"}
+NON_STAGE2_METHODS = frozenset()
 CASE_DEFS: Dict[str, Dict[str, Any]] = {
     "clinical": {
         "case_name": "clinical",
@@ -199,7 +199,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--student", default="BF32_NB8")
     ap.add_argument("--stage1_method", default="lifefm_kd")
     ap.add_argument("--cases", nargs="+", default=["all"])
-    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS))
+    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS), choices=list(ALL_METHODS))
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--stage2_epochs", type=int, default=100)
     ap.add_argument("--stage2_patience", type=int, default=10)

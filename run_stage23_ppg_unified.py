@@ -68,17 +68,17 @@ from run_stage2_student_subspace import assign_flat_grad, flatten_grads, pcgrad_
 
 
 DEFAULT_OUT_ROOT = ROOT / "kd_sweep_results/stage23_ppg_unified"
-STAGE2_METHODS = ("frozen_heads", "joint_finetune", "gradnorm_joint", "pcgrad_joint", "fairgrad_joint", "scope_matched_naive", "lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm", "care_direct", "care_direct_v2", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_tune")
-STAGE3_POLICIES = ("naive_ft", "new_head_only", "scope_matched_naive", "care_direct", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "lora_ft", "lwf_ft", "anchor_only", "lpr", "cpca_core", "lwp", "cpca_ts", "cpca_ca", "cpca_tsca", "sema", "lwf_core", "lifefm_evolve", "lpr_core", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task", "head_mlp", "ewc", "sgp", "sgp_core")
-CARE_AUTO_STAGE2_METHODS = {"lifefm_adapt", "care_v2", "care_v3", "care_v2_normmse", "care_v2_cosine", "care_v2_statnorm", "care_v2_tasknorm"}
-CARE_STAGE2_METHODS = {"care_direct", "care_direct_v2", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b"}
-CARE_STAGE3_POLICIES = {"care_direct", "care_direct_v2b", "care_direct_v3", "care_direct_v4", "care_v5a", "care_v5b", "anchor_only", "cpca_core", "cpca_ts", "cpca_ca", "cpca_tsca"}
-CARE_V5_STAGE2_METHODS = {"care_v5a", "care_v5b"}
-CARE_V5_STAGE3_POLICIES = {"care_v5a", "care_v5b"}
+STAGE2_METHODS = ("lifefm_adapt",)
+STAGE3_POLICIES = ("lifefm_evolve",)
+CARE_AUTO_STAGE2_METHODS = {"lifefm_adapt"}
+CARE_STAGE2_METHODS = set()
+CARE_STAGE3_POLICIES = set()
+CARE_V5_STAGE2_METHODS = set()
+CARE_V5_STAGE3_POLICIES = set()
 ALL_CARE_STAGE2_METHODS = CARE_AUTO_STAGE2_METHODS | CARE_STAGE2_METHODS
-SCOPE_MATCHED_STAGE2_METHODS = {"scope_matched_naive"}
-SCOPE_MATCHED_STAGE3_POLICIES = {"scope_matched_naive"}
-DISTILL_STAGE3_POLICIES = CARE_STAGE3_POLICIES | {"lwf_ft", "lwp", "lwf_core", "lifefm_evolve", "core_dwdp", "core_affinity", "core_affinity_hybrid", "core_task", "lwp_task"}
+SCOPE_MATCHED_STAGE2_METHODS = set()
+SCOPE_MATCHED_STAGE3_POLICIES = set()
+DISTILL_STAGE3_POLICIES = {"lifefm_evolve"}
 
 # PPG-DaLiA activity IDs from the official readme:
 # 0 transient, 1 sitting, 2 stairs, 3 table soccer, 4 cycling,

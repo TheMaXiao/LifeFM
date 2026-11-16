@@ -204,8 +204,10 @@ Stage-III entry point does not.
 - **Teacher checkpoints are not included.** Stage-I training requires the original FM checkpoints (Pulse-PPG,
   ECGFounder, NormWear). The released Stage-I students let you run Stages II–III without them.
 - **Datasets are not included** and must be placed under `pulseppg/data/datasets/` (see `docs/DATA.md`).
-- **Baselines are not included.** The runners expose baseline policy names internally, but only the LifeFM paths
-  (`lifefm_kd`, `lifefm_adapt`, `lifefm_evolve`) are part of this release.
+- **LifeFM-only surface.** Every entry point accepts only the LifeFM methods: Stage-I `--methods {lifefm_kd}`,
+  Stage-II `--methods {lifefm_adapt}`, Stage-III `--stage2-methods {lifefm_adapt}` / `--stage3-policy {lifefm_evolve}`.
+  No baseline method can be selected. Some shared internal machinery (the LwP-style update that Stage-III builds
+  on, and the core-basis builders used by both Stage-II and Stage-III) is retained because LifeFM depends on it.
 - The paper's budget rule is `B_KD = (1+ρ)·B_S` with `ρ = 0.1`; set it explicitly via `--k-values` (or
   `--adaptive-k` for an energy-based alternative). The released checkpoints list their recorded `k`.
 - Runtime paths are relative to the repository root; run the commands from the release root.

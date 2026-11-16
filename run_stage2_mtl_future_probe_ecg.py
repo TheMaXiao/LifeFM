@@ -37,7 +37,7 @@ from run_stage23_ecg_unified import (
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_OUT_ROOT = ROOT / "results/stage2_mtl_future_probe_ecg"
-ALL_METHODS = ("ecgfounder_teacher_e0", "e0_probe", "joint_mtl", "gradnorm_mtl", "pcgrad_mtl", "fairgrad_mtl", "lifefm_adapt")
+ALL_METHODS = ("lifefm_adapt",)
 METHOD_TO_STAGE2 = {
     "joint_mtl": "joint_finetune",
     "gradnorm_mtl": "gradnorm_joint",
@@ -45,7 +45,7 @@ METHOD_TO_STAGE2 = {
     "fairgrad_mtl": "fairgrad_joint",
     "lifefm_adapt": "lifefm_adapt",
 }
-NON_STAGE2_METHODS = {"ecgfounder_teacher_e0", "e0_probe"}
+NON_STAGE2_METHODS = frozenset()
 CASE_DEFS: Dict[str, Dict[str, Any]] = {
     "ecg_ptbxl_to_cinc_af": {
         "case_name": "ecg_ptbxl_to_cinc_af",
@@ -91,7 +91,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--student", default="BF10_NB7")
     ap.add_argument("--stage1_method", default="lifefm_kd")
     ap.add_argument("--cases", nargs="+", default=["all"])
-    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS))
+    ap.add_argument("--methods", nargs="+", default=list(ALL_METHODS), choices=list(ALL_METHODS))
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--stage2_epochs", type=int, default=100)
     ap.add_argument("--stage2_patience", type=int, default=10)
