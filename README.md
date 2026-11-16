@@ -1,21 +1,5 @@
 # LifeFM
 
-Reference implementation of **LifeFM**, a three-stage lifecycle for compressing, specializing, and continually
-evolving wearable foundation models (IMWUT'27).
-
-LifeFM treats a large wearable foundation model (FM) as a teacher and a small on-device encoder as the student,
-and applies the same *core-knowledge* principle at every stage:
-
-| Stage | Goal | Method (paper) | Code |
-|---|---|---|---|
-| **I. Compression** | Distill the FM into a wearable-scale encoder | capacity-matched budget `B_KD = (1+ρ)·B_S`, top-`B_KD` teacher-SVD directions, core-alignment MSE + non-core suppression (`λ_sup = 0.1`) | `run_lifefm_kd.py` (`--methods lifefm_kd`) |
-| **II. Initial specialization** | Adapt the compressed encoder to an initial task set without losing generalizability | 95%-energy core basis of the compressed encoder + core-anchor loss (`λ_core = 0.05`) | `run_stage2_mtl_future_probe.py` / `_ecg.py` / `_imu.py` (`lifefm_adapt`) |
-| **III. Continual evolution** | Integrate new tasks without historical data | core-preserved update + core refresh (`λ_evo_core = 0.1`), added on top of an underlying continual-learning objective | `run_stage23_ppg_unified.py` / `..._ecg_...` / `..._imu_...` (`--stage3-policy lifefm_evolve`) |
-
-The paper is included for reference: `LifeFM_IMWUT27.pdf`, `LifeFM_IMWUT27_Appendix.pdf`.
-
----
-
 ## 1. What is in this release
 
 ```
@@ -149,16 +133,15 @@ python -u run_stage23_ppg_unified.py \
 
 ## 6. Released Stage-I checkpoints
 
-| File | Modality / student | Params | Recorded KD budget `k` | `λ_sup` |
-|---|---|---:|---:|---:|
-| `checkpoints/stage1/ppg_bf20/lifefm_kd_seed{0,1,2}.pt` | PPG / BF20_NB8 (width 40) | 0.19 M | 40 | 0.1 |
-| `checkpoints/stage1/ppg_bf32/lifefm_kd_seed0.pt` | PPG / BF32_NB8 (width 64) | 0.46 M | 50 | 0.1 |
-| `checkpoints/stage1/ppg_bf48/lifefm_kd_seed{0,1,2}.pt` | PPG / BF48_NB8 (width 96) | 1.02 M | 40 | 0.1 |
-| `checkpoints/stage1/ecg_bf6/lifefm_kd_seed0.pt` | ECG / BF6_NB7 | 0.46 M | 117 | 0.05 |
-| `checkpoints/stage1/imu_imu2m/lifefm_kd_lam0.1_seed0.pt` | IMU / imu2m | 2.20 M | 4 | — |
+| File | Modality / student | Params |
+|---|---|---:|
+| `checkpoints/stage1/ppg_bf20/lifefm_kd_seed0.pt` | PPG / BF20_NB8 (width 40) | 0.19 M |
+| `checkpoints/stage1/ppg_bf32/lifefm_kd_seed0.pt` | PPG / BF32_NB8 (width 64) | 0.46 M |
+| `checkpoints/stage1/ppg_bf48/lifefm_kd_seed0.pt` | PPG / BF48_NB8 (width 96) | 1.02 M |
+| `checkpoints/stage1/ecg_bf6/lifefm_kd_seed0.pt` | ECG / BF6_NB7 | 0.46 M |
+| `checkpoints/stage1/imu_imu2m/lifefm_kd_lam0.1_seed0.pt` | IMU / imu2m | 2.20 M |
 
-These are the exact artifacts used for the paper's Stage-I results; each file stores its own metadata
-(`student`, `method`, `seed`, `k`, `lam`, `student_cfg`, `state_dict`).
+Each checkpoint stores its own metadata and `state_dict`.
 
 ---
 
@@ -175,55 +158,8 @@ the evaluated model and the reference model: `value / reference` for higher-is-b
 
 ---
 
-## 7b. Smoke test (verified)
-
-These three checks were run against this release and pass; they require no teacher checkpoint:
-
-```bash
-# Stage-I objective (synthetic embeddings; verifies core alignment + non-core suppression)
-python scripts/smoke_stage1.py
-# -> [smoke stage1] params_changed=True finite=True | OK
-
-# Stage-II + Stage-III end-to-end (the Stage-III runner trains Stage-II itself)
-python -u run_stage23_ppg_unified.py --packs sdb_to_bidmc_finger --students BF32_NB8 \
-  --stage2-methods lifefm_adapt --stage3-policy lifefm_evolve --seeds 0 \
-  --stage2-epochs 1 --stage3-epochs 1 --limit-train 200 --limit-val 50 --limit-test 50 \
-  --out-root /tmp/smoke --stage2-scope top2 --stage3-scope top1 \
-  --lambda-evo-core 0.1 --core-energy 0.95 --core-mode refresh
-# -> Stage-II core basis k=26, two Stage-III rounds (hr -> finger), core refresh k=26 -> 28, results CSV written
-```
-
-**What was verified:** Stage-I KD trains and updates the student; Stage-II `lifefm_adapt` builds the 95%-energy
-core basis, trains, and saves its checkpoint; Stage-III `lifefm_evolve` runs both rounds with core refresh and
-writes per-task retention + ASP. **What still needs the FM:** the standalone Stage-II script also computes
-teacher-reference baselines and therefore requires the teacher checkpoint (`pulseppg/experiments/out`); the
-Stage-III entry point does not.
-
 ## 8. Notes and limitations
 
 - **Teacher checkpoints are not included.** Stage-I training requires the original FM checkpoints (Pulse-PPG,
   ECGFounder, NormWear). The released Stage-I students let you run Stages II–III without them.
 - **Datasets are not included** and must be placed under `pulseppg/data/datasets/` (see `docs/DATA.md`).
-- **LifeFM-only surface.** Every entry point accepts only the LifeFM methods: Stage-I `--methods {lifefm_kd}`,
-  Stage-II `--methods {lifefm_adapt}`, Stage-III `--stage2-methods {lifefm_adapt}` / `--stage3-policy {lifefm_evolve}`.
-  No baseline method can be selected. Some shared internal machinery (the LwP-style update that Stage-III builds
-  on, and the core-basis builders used by both Stage-II and Stage-III) is retained because LifeFM depends on it.
-- The paper's budget rule is `B_KD = (1+ρ)·B_S` with `ρ = 0.1`; set it explicitly via `--k-values` (or
-  `--adaptive-k` for an energy-based alternative). The released checkpoints list their recorded `k`.
-- Runtime paths are relative to the repository root; run the commands from the release root.
-
----
-
-## 9. Citation
-
-```bibtex
-@article{lifefm2027,
-  title   = {LifeFM: Enabling On-Device Deployment and Lifecycle Adaptation of Wearable Foundation Models},
-  journal = {Proceedings of the ACM on Interactive, Mobile, Wearable and Ubiquitous Technologies (IMWUT)},
-  year    = {2027}
-}
-```
-
-## 10. License
-
-To be added by the authors before public release.
