@@ -1,0 +1,26 @@
+# data / results / outputs
+pulseppg/data/datasets/
+data/
+results/
+kd_sweep_results/
+logs/
+revision_logs/
+*.pt
+!checkpoints/**/*.pt
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# large media
+*.pdf
+!LifeFM_IMWUT27.pdf
+!LifeFM_IMWUT27_Appendix.pdf
